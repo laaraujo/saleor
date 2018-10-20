@@ -10,7 +10,8 @@ from saleor.graphql.order.mutations.draft_orders import (
 from saleor.graphql.order.mutations.orders import (
     clean_order_cancel, clean_order_capture, clean_order_mark_as_paid,
     clean_refund_payment, clean_release_payment)
-from saleor.graphql.order.types import OrderEventsEmailsEnum, PaymentStatusEnum
+from saleor.graphql.order.types import OrderEventsEmailsEnum
+from saleor.graphql.payment.types import PaymentChargeStatusEnum
 from saleor.order import (
     CustomPaymentChoices, OrderEvents, OrderEventsEmails, OrderStatus)
 from saleor.order.models import Order, OrderEvent
@@ -894,7 +895,7 @@ def test_order_capture(
     content = get_graphql_content(response)
     data = content['data']['orderCapture']['order']
     order.refresh_from_db()
-    assert data['paymentStatus'] == PaymentStatusEnum.CHARGED.name
+    assert data['paymentStatus'] == PaymentChargeStatusEnum.CHARGED.name
     assert data['isPaid']
     assert data['totalCaptured']['amount'] == float(amount)
 
@@ -991,7 +992,7 @@ def test_order_release(
         query, variables, permissions=[permission_manage_orders])
     content = get_graphql_content(response)
     data = content['data']['orderRelease']['order']
-    assert data['paymentStatus'] == PaymentStatusEnum.NOT_CHARGED.name
+    assert data['paymentStatus'] == PaymentChargeStatusEnum.NOT_CHARGED.name
     event_payment_released = order.events.last()
     assert event_payment_released.type == OrderEvents.PAYMENT_RELEASED.value
     assert event_payment_released.user == staff_user
@@ -1021,7 +1022,7 @@ def test_order_refund(
     data = content['data']['orderRefund']['order']
     order.refresh_from_db()
     assert data['status'] == order.status.upper()
-    assert data['paymentStatus'] == PaymentStatusEnum.FULLY_REFUNDED.name
+    assert data['paymentStatus'] == PaymentChargeStatusEnum.FULLY_REFUNDED.name
     assert data['isPaid'] == False
 
     order_event = order.events.last()
