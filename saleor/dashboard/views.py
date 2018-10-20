@@ -7,7 +7,7 @@ from django.template.response import TemplateResponse
 
 from ..order.models import Order
 from ..payment import ChargeStatus
-from ..payment.models import PaymentMethod
+from ..payment.models import Payment
 from ..product.models import Product
 
 
@@ -35,8 +35,8 @@ def superuser_required(
 def index(request):
     paginate_by = 10
     orders_to_ship = Order.objects.to_ship().select_related(
-        'user').prefetch_related('lines', 'payment_methods')
-    payments = PaymentMethod.objects.filter(
+        'user').prefetch_related('lines', 'payments')
+    payments = Payment.objects.filter(
         is_active=True, charge_status=ChargeStatus.NOT_CHARGED
     ).order_by('-created')
     payments = payments.select_related('order', 'order__user')

@@ -295,7 +295,7 @@ type Checkout implements Node {
   translatedDiscountName: String
   voucherCode: String
   lines: [CheckoutLine]
-  paymentMethods(before: String, after: String, first: Int, last: Int, id: ID): PaymentMethodCountableConnection
+  payments(before: String, after: String, first: Int, last: Int, id: ID): PaymentCountableConnection
   id: ID!
   totalPrice: TaxedMoney
   subtotalPrice: TaxedMoney
@@ -389,9 +389,9 @@ type CheckoutLinesUpdate {
   checkout: Checkout
 }
 
-type CheckoutPaymentMethodCreate {
+type CheckoutPaymentCreate {
   errors: [Error]
-  paymentMethod: PaymentMethod
+  payment: Payment
 }
 
 type CheckoutShippingAddressUpdate {
@@ -841,7 +841,7 @@ type Mutations {
   checkoutShippingAddressUpdate(checkoutId: ID, shippingAddress: AddressInput): CheckoutShippingAddressUpdate
   checkoutShippingMethodUpdate(checkoutId: ID, shippingMethodId: ID!): CheckoutShippingMethodUpdate
   checkoutEmailUpdate(checkoutId: ID, email: String!): CheckoutEmailUpdate
-  checkoutPaymentMethodCreate(input: PaymentMethodInput!): CheckoutPaymentMethodCreate
+  checkoutPaymentCreate(input: PaymentInput!): CheckoutPaymentCreate
   checkoutComplete(checkoutId: ID): CheckoutComplete
   collectionCreate(input: CollectionCreateInput!): CollectionCreate
   collectionUpdate(id: ID!, input: CollectionInput!): CollectionUpdate
@@ -878,9 +878,9 @@ type Mutations {
   attributeCreate(id: ID!, input: AttributeCreateInput!, type: AttributeTypeEnum!): AttributeCreate
   attributeDelete(id: ID!): AttributeDelete
   attributeUpdate(id: ID!, input: AttributeUpdateInput!): AttributeUpdate
-  paymentMethodCapture(amount: Decimal, paymentMethodId: ID!): PaymentMethodCapture
-  paymentMethodRefund(amount: Decimal, paymentMethodId: ID!): PaymentMethodRefund
-  paymentMethodVoid(paymentMethodId: ID!): PaymentMethodVoid
+  paymentCapture(amount: Decimal, paymentId: ID!): PaymentCapture
+  paymentRefund(amount: Decimal, paymentId: ID!): PaymentRefund
+  paymentVoid(paymentId: ID!): PaymentVoid
   productCreate(input: ProductCreateInput!): ProductCreate
   productDelete(id: ID!): ProductDelete
   productUpdate(id: ID!, input: ProductInput!): ProductUpdate
@@ -952,7 +952,7 @@ type Order implements Node {
   lines: [OrderLine]!
   fulfillments: [Fulfillment]!
   events: [OrderEvent]
-  paymentMethods(before: String, after: String, first: Int, last: Int, id: ID): PaymentMethodCountableConnection
+  payments(before: String, after: String, first: Int, last: Int, id: ID): PaymentCountableConnection
   isPaid: Boolean
   number: String
   paymentStatus: PaymentChargeStatusEnum
@@ -1165,7 +1165,7 @@ enum PaymentChargeStatusEnum {
   FULLY_REFUNDED
 }
 
-type PaymentMethod implements Node {
+type Payment implements Node {
   id: ID!
   variant: String!
   isActive: Boolean!
@@ -1193,23 +1193,23 @@ type PaymentMethod implements Node {
   transactions(before: String, after: String, first: Int, last: Int, id: ID): TransactionCountableConnection
 }
 
-type PaymentMethodCapture {
+type PaymentCapture {
   errors: [Error]
-  paymentMethod: PaymentMethod
+  payment: Payment
 }
 
-type PaymentMethodCountableConnection {
+type PaymentCountableConnection {
   pageInfo: PageInfo!
-  edges: [PaymentMethodCountableEdge!]!
+  edges: [PaymentCountableEdge!]!
   totalCount: Int
 }
 
-type PaymentMethodCountableEdge {
-  node: PaymentMethod!
+type PaymentCountableEdge {
+  node: Payment!
   cursor: String!
 }
 
-input PaymentMethodInput {
+input PaymentInput {
   gateway: ProvidersEnum
   checkoutId: ID
   transactionToken: String!
@@ -1218,14 +1218,14 @@ input PaymentMethodInput {
   billingAddress: AddressInput
 }
 
-type PaymentMethodRefund {
+type PaymentRefund {
   errors: [Error]
-  paymentMethod: PaymentMethod
+  payment: Payment
 }
 
-type PaymentMethodVoid {
+type PaymentVoid {
   errors: [Error]
-  paymentMethod: PaymentMethod
+  payment: Payment
 }
 
 type PermissionDisplay {
@@ -1531,9 +1531,9 @@ type Query {
   orders(query: String, before: String, after: String, first: Int, last: Int, status: String, totalNet: Float, totalNet_Lte: Float, totalNet_Gte: Float, id: [ID], orderId: Float, created_Gte: String, created_Lte: String, user: String): OrderCountableConnection
   page(id: ID, slug: String): Page
   pages(query: String, before: String, after: String, first: Int, last: Int, id: ID, title: String): PageCountableConnection
-  payment(id: ID): PaymentMethod
+  payment(id: ID): Payment
   paymentClientToken(gateway: ProvidersEnum): String
-  payments(before: String, after: String, first: Int, last: Int, id: ID): PaymentMethodCountableConnection
+  payments(before: String, after: String, first: Int, last: Int, id: ID): PaymentCountableConnection
   product(id: ID): Product
   products(query: String, before: String, after: String, first: Int, last: Int, category: ID, price: Float, price_Range: Float, price_Lte: Float, price_Gte: Float, attributes: [AttributeScalar], name: String, name_Icontains: String, productType_Name: String, isPublished: Boolean, sortBy: String): ProductCountableConnection
   productType(id: ID): ProductType
@@ -1834,7 +1834,7 @@ type TaxedMoneyRange {
 type Transaction implements Node {
   id: ID!
   created: DateTime!
-  paymentMethod: PaymentMethod!
+  payment: Payment!
   token: String!
   transactionType: TransactionTransactionType!
   isSuccess: Boolean!

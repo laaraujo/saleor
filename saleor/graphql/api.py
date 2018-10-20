@@ -38,12 +38,12 @@ from .order.mutations.orders import (
 from .page.resolvers import resolve_pages, resolve_page
 from .page.types import Page
 from .page.mutations import PageCreate, PageDelete, PageUpdate
-from .payment.types import PaymentGatewayEnum, PaymentMethod
+from .payment.types import PaymentGatewayEnum, Payment
 from .payment.resolvers import (
-    resolve_payment_methods, resolve_payment_client_token)
+    resolve_payments, resolve_payment_client_token)
 from .payment.mutations import (
-    CheckoutPaymentMethodCreate, PaymentMethodCapture, PaymentMethodRefund,
-    PaymentMethodVoid)
+    CheckoutPaymentCreate, PaymentCapture, PaymentRefund,
+    PaymentVoid)
 from .product.filters import ProductFilterSet
 from .product.mutations.attributes import (
     AttributeValueCreate, AttributeValueDelete,
@@ -145,11 +145,11 @@ class Query(graphene.ObjectType):
         Page, query=graphene.String(
             description=DESCRIPTIONS['page']),
         description='List of the shop\'s pages.')
-    payment = graphene.Field(PaymentMethod, id=graphene.Argument(graphene.ID))
+    payment = graphene.Field(Payment, id=graphene.Argument(graphene.ID))
     payment_client_token = graphene.Field(
         graphene.String, args={'gateway': PaymentGatewayEnum()})
     payments = DjangoFilterConnectionField(
-        PaymentMethod, description='List of payments methods.')
+        Payment, description='List of payments methods.')
     product = graphene.Field(
         Product, id=graphene.Argument(graphene.ID),
         description='Lookup a product by ID.')
@@ -264,15 +264,15 @@ class Query(graphene.ObjectType):
     def resolve_orders(self, info, query=None, **kwargs):
         return resolve_orders(info, query)
 
-    def resolve_payment_method(self, info, id):
-        return graphene.Node.get_node_from_global_id(info, id, PaymentMethod)
+    def resolve_payment(self, info, id):
+        return graphene.Node.get_node_from_global_id(info, id, Payment)
 
     def resolve_payment_client_token(self, info, gateway=None):
         return resolve_payment_client_token(gateway)
 
     @permission_required('order.manage_orders')
     def resolve_payments(self, info, query=None, **kwargs):
-        return resolve_payment_methods(info, query)
+        return resolve_payments(info, query)
 
     def resolve_product(self, info, id):
         return graphene.Node.get_node_from_global_id(info, id, Product)
@@ -367,7 +367,7 @@ class Mutations(graphene.ObjectType):
     checkout_shipping_address_update = CheckoutShippingAddressUpdate.Field()
     checkout_shipping_method_update = CheckoutShippingMethodUpdate.Field()
     checkout_email_update = CheckoutEmailUpdate.Field()
-    checkout_payment_method_create = CheckoutPaymentMethodCreate.Field()
+    checkout_payment_create = CheckoutPaymentCreate.Field()
     checkout_complete = CheckoutComplete.Field()
 
     collection_create = CollectionCreate.Field()
@@ -411,9 +411,9 @@ class Mutations(graphene.ObjectType):
     attribute_delete = AttributeDelete.Field()
     attribute_update = AttributeUpdate.Field()
 
-    payment_method_capture = PaymentMethodCapture.Field()
-    payment_method_refund = PaymentMethodRefund.Field()
-    payment_method_void = PaymentMethodVoid.Field()
+    payment_capture = PaymentCapture.Field()
+    payment_refund = PaymentRefund.Field()
+    payment_void = PaymentVoid.Field()
 
     product_create = ProductCreate.Field()
     product_delete = ProductDelete.Field()
