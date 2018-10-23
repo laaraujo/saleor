@@ -880,7 +880,7 @@ def test_order_capture(
                 order {
                     paymentStatus
                     isPaid
-                    totalCaptured {
+                    capturedAmount {
                         amount
                     }
                 }
@@ -897,7 +897,7 @@ def test_order_capture(
     order.refresh_from_db()
     assert data['paymentStatus'] == PaymentChargeStatusEnum.CHARGED.name
     assert data['isPaid']
-    assert data['totalCaptured']['amount'] == float(amount)
+    assert data['capturedAmount']['amount'] == float(amount)
 
     event_order_paid = order.events.first()
     assert event_order_paid.type == OrderEvents.ORDER_FULLY_PAID.value

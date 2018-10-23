@@ -2,12 +2,10 @@ import graphene
 from graphene import relay
 
 from ...order import OrderEvents, OrderEventsEmails, models
-from ...payment import ChargeStatus
 from ...product.templatetags.product_images import get_thumbnail
 from ..account.types import User
 from ..core.types.common import CountableDjangoObjectType
 from ..core.types.money import Money, TaxedMoney
-from ..core.utils import str_to_enum
 from ..payment.types import PaymentChargeStatusEnum
 from ..shipping.types import ShippingMethod
 
@@ -107,14 +105,43 @@ class OrderLine(CountableDjangoObjectType):
             self.variant.get_first_image(), size, method='thumbnail')
 
 
+class OrderAction(graphene.Enum):
+    CAPTURE = 'CAPTURE'
+    MARK_AS_PAID = 'MARK_AS_PAID'
+    REFUND = 'REFUND'
+    VOID = 'VOID'
+
+    @property
+    def description(self):
+        if self == OrderAction.CAPTURE:
+            return 'Represents the capture action.'
+        if self == OrderAction.MARK_AS_PAID:
+            return 'Represents a mark-as-paid action.'
+        if self == OrderAction.REFUND:
+            return 'Represents a refund action.'
+        if self == OrderAction.VOID:
+            return 'Represents a void action.'
+
+
 class Order(CountableDjangoObjectType):
+    actions = graphene.List(
+        OrderAction, description='''List of actions that can be performed in
+        the current state of an order.''', required=True)
+    available_shipping_methods = graphene.List(
+        ShippingMethod, required=False,
+        description='Shipping methods that can be used with this order.')
     fulfillments = graphene.List(
         Fulfillment,
-        required=True,
-        description='List of shipments for the order.')
+        required=True, description='List of shipments for the order.')
+    lines = graphene.List(
+        OrderLine, required=True,
+        description='List of order lines for the order')
+    events = graphene.List(
+        OrderEvent,
+        description='List of events associated with the order.')
+    number = graphene.String(description='User-friendly number of an order.')
     is_paid = graphene.Boolean(
         description='Informs if an order is fully paid.')
-    number = graphene.String(description='User-friendly number of an order.')
     payment_status = PaymentChargeStatusEnum(
         description='Internal payment status.')
     payment_status_display = graphene.String(
@@ -123,21 +150,16 @@ class Order(CountableDjangoObjectType):
         TaxedMoney,
         description='The sum of line prices not including shipping.')
     status_display = graphene.String(description='User-friendly order status.')
-    total_authorized = graphene.Field(
-        Money, description='Amount authorized for the order.')
-    total_captured = graphene.Field(
-        Money, description='Amount captured by payment.')
-    events = graphene.List(
-        OrderEvent,
-        description='List of events associated with the order.')
+    authorized_amount = graphene.Field(
+        Money, description='Amount authorized for the order.', required=True)
+    balance_amount = graphene.Field(
+        Money,
+        description='''The difference between the paid and the order total
+        amount.''', required=True)
+    captured_amount = graphene.Field(
+        Money, description='Amount captured by payment.', required=True)
     user_email = graphene.String(
         required=False, description='Email address of the customer.')
-    available_shipping_methods = graphene.List(
-        ShippingMethod, required=False,
-        description='Shipping methods that can be used with this order.')
-    lines = graphene.List(
-        OrderLine, required=True,
-        description='List of order lines for the order')
 
     class Meta:
         description = 'Represents an order in the shop.'
@@ -148,22 +170,34 @@ class Order(CountableDjangoObjectType):
             'total_net']
 
     @staticmethod
+    def resolve_actions(obj, info):
+        actions = []
+        payment = obj.get_last_payment()
+        if obj.can_capture(payment):
+            actions.append(OrderAction.CAPTURE)
+        if obj.can_mark_as_paid():
+            actions.append(OrderAction.MARK_AS_PAID)
+        if obj.can_refund(payment):
+            actions.append(OrderAction.REFUND)
+        if obj.can_void(payment):
+            actions.append(OrderAction.VOID)
+        return actions
+
+    @staticmethod
     def resolve_subtotal(obj, info):
         return obj.get_subtotal()
 
     @staticmethod
-    def resolve_total_authorized(obj, info):
-        # FIXME adjust to multiple payments in the future
-        payment = obj.get_last_payment()
-        if payment:
-            return payment.total
+    def resolve_authorized_amount(obj, info):
+        return obj.authorized_amount
 
     @staticmethod
-    def resolve_total_captured(obj, info):
-        # FIXME adjust to multiple payments in the future
-        payment = obj.get_last_payment()
-        if payment:
-            return payment.captured_amount
+    def resolve_balance_amount(obj, info):
+        return obj.balance_amount
+
+    @staticmethod
+    def resolve_captured_amount(obj, info):
+        return obj.captured_amount
 
     @staticmethod
     def resolve_fulfillments(obj, info):
