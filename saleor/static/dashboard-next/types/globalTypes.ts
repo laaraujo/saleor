@@ -243,6 +243,8 @@ export interface SiteDomainInput {
 }
 
 export interface StaffCreateInput {
+  firstName?: string | null;
+  lastName?: string | null;
   email?: string | null;
   note?: string | null;
   isActive?: boolean | null;
@@ -251,6 +253,8 @@ export interface StaffCreateInput {
 }
 
 export interface StaffInput {
+  firstName?: string | null;
+  lastName?: string | null;
   email?: string | null;
   note?: string | null;
   isActive?: boolean | null;
